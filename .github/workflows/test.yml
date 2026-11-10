@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://user:password@localhost:5432/myappdb
 
     services:
       postgres:
@@ -105,8 +107,7 @@ jobs:
         with:
           push: true
           tags: |
-            kaw393939/601_module9:latest
-            kaw393939/601_module9:${{ github.sha }}
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=registry,ref=kaw393939/601_module9:cache
+            slasha1982/assignment10_is601:latest
+            slasha1982/assignment10_is601:${{ github.sha }}
+          cache-from: type=registry,ref=slasha1982/assignment10_is601:cache
           cache-to: type=inline,mode=max
