@@ -1,17 +1,15 @@
 import os
+from pydantic_settings import BaseSettings
 
+class Settings(BaseSettings):
+    """Application configuration settings with SQLite fallback for local testing"""
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-super-secret-key-for-testing")
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-def _normalize_url(url: str) -> str:
-    """Force the psycopg 3 driver so every SQLAlchemy version agrees."""
-    if url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+psycopg://", 1)
-    return url
-
-
-class Settings:
-    DATABASE_URL: str = _normalize_url(
-        os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/mydb")
-    )
-
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()
