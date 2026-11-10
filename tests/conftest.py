@@ -17,9 +17,8 @@ def db_session():
     """Provide a fresh database session with nested transaction support for tests."""
     connection = engine.connect()
     transaction = connection.begin()
-    session = SessionLocal(bind=connection)
+    session = SessionLocal(bind=connection, join_transaction_mode="create_savepoint")
     
-    session.begin_nested()
     
     yield session
     
