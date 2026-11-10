@@ -35,3 +35,5 @@ tomlkit==0.13.2
 typing_extensions>=4.14.1
 urllib3==2.2.3
 uvicorn==0.32.0
+sqlalchemy
+psycopg[binary]
