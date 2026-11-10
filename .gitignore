@@ -9,3 +9,5 @@ htmlcov/
 .coverage
 .pytest_cache/
 __pycache__/
+test.db
+venv/
