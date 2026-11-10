@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
    PYTHONUNBUFFERED=1
@@ -9,7 +9,7 @@ RUN apt-get update && \
    apt-get upgrade -y && \
    apt-get install -y --no-install-recommends gcc python3-dev libssl-dev && \
    rm -rf /var/lib/apt/lists/* && \
-   python -m pip install --upgrade pip setuptools>=70.0.0 wheel && \
+   python -m pip install --upgrade pip "setuptools>=78.1.1" wheel && \
    groupadd -r appgroup && \
    useradd -r -g appgroup appuser
 
