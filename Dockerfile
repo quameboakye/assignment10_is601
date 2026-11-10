@@ -10,6 +10,7 @@ RUN apt-get update && \
    apt-get install -y --no-install-recommends gcc python3-dev libssl-dev && \
    rm -rf /var/lib/apt/lists/* && \
    python -m pip install --upgrade pip "setuptools>=78.1.1" wheel && \
+   rm -f /usr/local/lib/python3.11/site-packages/pip/_vendor/bom.cdx.json && \
    groupadd -r appgroup && \
    useradd -r -g appgroup appuser
 
