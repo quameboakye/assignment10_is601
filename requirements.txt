@@ -35,6 +35,6 @@ tomlkit==0.13.2
 typing_extensions>=4.14.1
 urllib3==2.2.3
 uvicorn==0.32.0
-sqlalchemy
-psycopg[binary]
 email-validator
+SQLAlchemy==2.1.8
+psycopg[binary]==3.3.8
