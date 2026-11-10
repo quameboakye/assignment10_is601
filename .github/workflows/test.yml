@@ -38,7 +38,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            venv
             ~/.cache/pip
           key: ${{ runner.os }}-python-3.11-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
@@ -50,23 +49,17 @@ jobs:
           source venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          playwright install --with-deps
+          playwright install --with-deps chromium
 
-      - name: Run unit tests
+      - name: Run all tests with coverage
         run: |
           source venv/bin/activate
           mkdir -p test-results
-          pytest tests/unit/ --cov=src --junitxml=test-results/junit.xml
-
-      - name: Run integration tests
-        run: |
-          source venv/bin/activate
-          pytest tests/integration/
-
-      - name: Run E2E tests
-        run: |
-          source venv/bin/activate
-          pytest tests/e2e/
+          pytest tests/unit/ tests/integration/ tests/e2e/ \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-fail-under=90 \
+            --junitxml=test-results/junit.xml
 
   security:
     needs: test
