@@ -9,10 +9,10 @@ import pytest
 import logging
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
 
 from app.models.user import User
-from tests.conftest import create_fake_user, managed_db_session
+from app.database import SessionLocal
+from tests.conftest import create_fake_user
 
 # Use the logger configured in conftest.py
 logger = logging.getLogger(__name__)
@@ -34,10 +34,10 @@ def test_database_connection(db_session):
 
 def test_managed_session():
     """
-    Test the managed_db_session context manager for one-off queries and rollbacks.
+    Test the SessionLocal context manager for one-off queries and rollbacks.
     Demonstrates how a manual session context can work alongside the fixture-based approach.
     """
-    with managed_db_session() as session:
+    with SessionLocal() as session:
         # Simple query
         session.execute(text("SELECT 1"))
         
@@ -331,10 +331,9 @@ def test_user_persistence_after_constraint(db_session):
 
 def test_error_handling():
     """
-    Verify that a manual managed_db_session can capture and log invalid SQL errors.
+    Verify that a manual SessionLocal session can capture and log invalid SQL errors.
     """
     with pytest.raises(Exception) as exc_info:
-        with managed_db_session() as session:
+        with SessionLocal() as session:
             session.execute(text("INVALID SQL"))
     assert "INVALID SQL" in str(exc_info.value)
-
