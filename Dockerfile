@@ -15,6 +15,8 @@ RUN apt-get update && \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir --upgrade "setuptools>=78.1.1" && \
+    python -c "import setuptools; print('Final setuptools version:', setuptools.__version__)"
 
 COPY . .
 RUN chown -R appuser:appgroup /app
