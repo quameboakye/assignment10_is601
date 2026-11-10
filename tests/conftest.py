@@ -1,74 +1,114 @@
-# tests/e2e/conftest.py
-
-import subprocess
-import time
 import pytest
-from playwright.sync_api import sync_playwright
-import requests
+from uuid import uuid4
+from sqlalchemy.exc import IntegrityError
+from app.database import SessionLocal, engine
+from app.models.user import User
+from app.database_init import Base
 
-@pytest.fixture(scope='session')
-def fastapi_server():
-    """
-    Fixture to start the FastAPI server before E2E tests and stop it after tests complete.
-    """
-    # Start FastAPI app
-    fastapi_process = subprocess.Popen(['python', 'main.py'])
-    
-    # Define the URL to check if the server is up
-    server_url = 'http://127.0.0.1:8000/'
-    
-    # Wait for the server to start by polling the root endpoint
-    timeout = 30  # seconds
-    start_time = time.time()
-    server_up = False
-    
-    print("Starting FastAPI server...")
-    
-    while time.time() - start_time < timeout:
-        try:
-            response = requests.get(server_url)
-            if response.status_code == 200:
-                server_up = True
-                print("FastAPI server is up and running.")
-                break
-        except requests.exceptions.ConnectionError:
-            pass
-        time.sleep(1)
-    
-    if not server_up:
-        fastapi_process.terminate()
-        raise RuntimeError("FastAPI server failed to start within timeout period.")
-    
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
+    """Create database tables before session and drop after."""
+    Base.metadata.create_all(bind=engine)
     yield
+    Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture
+def db_session():
+    """Provide a fresh database session with nested transaction support for tests."""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = SessionLocal(bind=connection)
     
-    # Terminate FastAPI server
-    print("Shutting down FastAPI server...")
-    fastapi_process.terminate()
-    fastapi_process.wait()
-    print("FastAPI server has been terminated.")
+    session.begin_nested()
+    
+    yield session
+    
+    session.close()
+    try:
+        transaction.rollback()
+    except Exception:
+        pass
+    connection.close()
 
-@pytest.fixture(scope="session")
-def playwright_instance_fixture():
-    """
-    Fixture to manage Playwright's lifecycle.
-    """
-    with sync_playwright() as p:
-        yield p
+@pytest.fixture
+def managed_db_session(db_session):
+    """Fixture providing a managed database session for tests."""
+    return db_session
 
-@pytest.fixture(scope="session")
-def browser(playwright_instance_fixture):
-    """
-    Fixture to launch a browser instance.
-    """
-    browser = playwright_instance_fixture.chromium.launch(headless=True)
-    yield browser
-    browser.close()
+def create_fake_user(username=None, email=None, password="password123"):
+    """Helper function returning a dictionary of user data, matching test unpacking expectations."""
+    uid = uuid4().hex[:8]
+    return {
+        "first_name": "Test",
+        "last_name": "User",
+        "username": username or f"user_{uid}",
+        "email": email or f"user_{uid}@example.com",
+        "password": password,
+    }
 
-@pytest.fixture(scope="function")
-def page(browser):
-    """
-    Fixture to create a new page for each test.
-    """
-    page = browser.new_page()
-    yield page
-    page.close()
+@pytest.fixture
+def test_user(db_session):
+    """Fixture to create, commit, and return a persisted test user object."""
+    uid = uuid4().hex[:8]
+    user_data = create_fake_user(username=f"test_{uid}", email=f"test_{uid}@example.com")
+    hashed_pw = User.hash_password(user_data["password"]) if hasattr(User, "hash_password") else user_data["password"]
+    
+    user_kwargs = {
+        "username": user_data["username"],
+        "email": user_data["email"],
+        "first_name": user_data["first_name"],
+        "last_name": user_data["last_name"],
+        "is_active": True,
+        "is_verified": True
+    }
+    if hasattr(User, "hashed_password"):
+        user_kwargs["hashed_password"] = hashed_pw
+    else:
+        user_kwargs["password"] = hashed_pw
+
+    user = User(**user_kwargs)
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+@pytest.fixture
+def seed_users(db_session):
+    """Fixture to seed multiple users for query testing."""
+    users = []
+    for i in range(3):
+        uid = uuid4().hex[:8]
+        user_data = create_fake_user(username=f"seed_{i}_{uid}", email=f"seed_{i}_{uid}@example.com")
+        hashed_pw = User.hash_password(user_data["password"]) if hasattr(User, "hash_password") else user_data["password"]
+        
+        user_kwargs = {
+            "username": user_data["username"],
+            "email": user_data["email"],
+            "first_name": user_data["first_name"],
+            "last_name": user_data["last_name"],
+            "is_active": True,
+            "is_verified": True
+        }
+        if hasattr(User, "hashed_password"):
+            user_kwargs["hashed_password"] = hashed_pw
+        else:
+            user_kwargs["password"] = hashed_pw
+
+        user = User(**user_kwargs)
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+        users.append(user)
+    return users
+
+@pytest.fixture
+def fake_user_data():
+    """Fixture providing dictionary data for user registration tests."""
+    uid = uuid4().hex[:8]
+    return {
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": f"john.doe_{uid}@example.com",
+        "username": f"johndoe_{uid}",
+        "password": "SecurePassword123"
+    }
